@@ -5,3 +5,5 @@ lambda/transform/function.zip
 .env
 terraform/.terraform/
 terraform/terraform.tfstate*
+awscliv2.zip
+aws/
