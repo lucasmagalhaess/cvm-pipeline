@@ -1,0 +1,80 @@
+name: Deploy CVM Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lambda/**'
+
+jobs:
+  deploy-extract:
+    name: Deploy Lambda Extract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Install dependencies and zip extract
+        run: |
+          cd lambda/extract
+          pip install requests -t package/ -q
+          cp main.py package/
+          cd package
+          zip -r ../function.zip .
+          echo "ZIP extract: $(du -h ../function.zip | cut -f1)"
+
+      - name: Deploy Lambda Extract
+        run: |
+          aws lambda update-function-code \
+            --function-name cvm-extract \
+            --zip-file fileb://lambda/extract/function.zip \
+            --region us-east-2
+          echo "Lambda cvm-extract deployado!"
+
+  deploy-transform:
+    name: Deploy Lambda Transform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Install dependencies and zip transform
+        run: |
+          cd lambda/transform
+          pip install boto3 -t package/ -q
+          cp main.py package/
+          cd package
+          zip -r ../function.zip .
+          echo "ZIP transform: $(du -h ../function.zip | cut -f1)"
+
+      - name: Deploy Lambda Transform
+        run: |
+          aws lambda update-function-code \
+            --function-name cvm-transform \
+            --zip-file fileb://lambda/transform/function.zip \
+            --region us-east-2
+          echo "Lambda cvm-transform deployado!"
